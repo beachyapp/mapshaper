@@ -6,36 +6,37 @@ SVG.importGeoJSONFeatures = function(features, opts) {
     var geom = obj.type == 'Feature' ? obj.geometry : obj; // could be null
     var geomType = geom && geom.type;
     var svgObj = null;
+
     if (geomType && geom.coordinates) {
       svgObj = SVG.geojsonImporters[geomType](geom.coordinates, obj.properties, opts);
     }
+
     if (!svgObj) {
       return {tag: 'g'}; // empty element
     }
+
+    if (!svgObj.properties) {
+      svgObj.properties = {};
+    }
+
     // TODO: fix error caused by null svgObj (caused by e.g. MultiPolygon with [] coordinates)
     if (obj.properties) {
-      SVG.applyStyleAttributes(svgObj, geomType, obj.properties);
+      SVG.applyDataAttributes(svgObj, obj.properties);
     }
+
     if ('id' in obj) {
-      if (!svgObj.properties) {
-        svgObj.properties = {};
-      }
       svgObj.properties.id = (opts.id_prefix || '') + obj.id;
     }
+
     return svgObj;
   });
 };
 
-SVG.applyStyleAttributes = function(svgObj, geomType, rec) {
-  var symbolType = GeoJSON.translateGeoJSONType(geomType);
-  if (symbolType == 'point' && ('label-text' in rec)) {
-    symbolType = 'label';
+SVG.applyDataAttributes = function(svgObj, properties) {
+  for (var key in properties) {
+    SVG.setAttribute(svgObj, 'data-' + key, properties[key]);
   }
-  var fields = SVG.findPropertiesBySymbolGeom(Object.keys(rec), symbolType);
-  for (var i=0, n=fields.length; i<n; i++) {
-    SVG.setAttribute(svgObj, fields[i], rec[fields[i]]);
-  }
-};
+}
 
 SVG.setAttribute = function(obj, k, v) {
   if (k == 'r') {
